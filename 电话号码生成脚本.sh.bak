@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# 提示用户输入11位电话号码
+read -p "请输入11位电话号码: " phone
+
+# 检查输入是否为11位数字
+if [[ ! $phone =~ ^[0-9]{11}$ ]]; then
+    echo "错误：请输入11位数字的电话号码"
+    exit 1
+fi
+
+# 提示输出文件名
+read -p "请输入输出文件名（默认: contacts_generated.vcf）: " output_file
+if [[ -z "$output_file" ]]; then
+    output_file="contacts_generated.vcf"
+fi
+
+# 如果文件已存在，询问是否覆盖
+if [[ -f "$output_file" ]]; then
+    read -p "文件 $output_file 已存在，是否覆盖？(y/n): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo "已取消"
+        exit 0
+    fi
+fi
+
+# 清空或创建文件
+> "$output_file"
+
+echo "正在生成联系人..."
+
+for i in $(seq 1 9999); do
+    # 当前号码（确保11位，进位处理）
+    current_phone=$phone
+    
+    # 写入 vCard 条目
+    cat >> "$output_file" << EOF
+BEGIN:VCARD
+VERSION:2.1
+N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:;;$current_phone;;;
+FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:$current_phone
+TEL;CELL:$current_phone
+X-GROUP-MEMBERSHIP:SIM 卡
+END:VCARD
+
+EOF
+
+    # 号码加 10000（数学运算，保持数字类型）
+    phone=$((phone + 1000))
+done
+
+# 获取文件绝对路径
+real_path=$(realpath "$output_file" 2>/dev/null || echo "$(pwd)/$output_file")
+
+echo "✅ 成功生成 10 个联系人"
+echo "📁 保存位置: $real_path"
+echo "📞 号码范围: 从 $(echo $current_phone_start) 到 $current_phone"
